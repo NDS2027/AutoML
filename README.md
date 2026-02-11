@@ -159,7 +159,7 @@ MIT License - feel free to use for learning and projects.
 
 ## 👨‍💻 Author
 
-Built by [Your Name] as a demonstration of end-to-end ML system design.
+Built by ND sarma as a demonstration of end-to-end ML system design.
 
 ---
 
