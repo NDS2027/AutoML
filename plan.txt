@@ -1,0 +1,2247 @@
+# 🏗️ **Complete Project Architecture & Description**
+
+## **AutoML Advisor for Retail Churn Prediction**
+
+---
+
+## 📋 **TABLE OF CONTENTS**
+
+1. [Executive Summary](#executive-summary)
+2. [System Architecture Overview](#system-architecture-overview)
+3. [Data Flow Pipeline](#data-flow-pipeline)
+4. [Component Architecture](#component-architecture)
+5. [Machine Learning Pipeline](#machine-learning-pipeline)
+6. [Frontend Architecture](#frontend-architecture)
+7. [Backend Architecture](#backend-architecture)
+8. [Database Design](#database-design)
+9. [Deployment Architecture](#deployment-architecture)
+10. [Security & Performance](#security-performance)
+11. [Project Structure](#project-structure)
+12. [Implementation Roadmap](#implementation-roadmap)
+
+---
+
+# 1️⃣ **EXECUTIVE SUMMARY**
+
+## **What This System Does**
+
+A web-based intelligent platform that transforms raw retail customer transaction data into actionable business insights by automatically:
+
+- **Analyzing** customer purchase patterns
+- **Predicting** which customers are likely to stop buying (churn)
+- **Recommending** specific retention strategies with ROI calculations
+- **Explaining** why certain customers are at risk
+- **Simulating** what-if scenarios for different business decisions
+
+## **User Journey**
+
+```
+Business Owner uploads their customer data (CSV)
+         ↓
+System automatically analyzes and profiles the data
+         ↓
+ML models train in background (takes 2-5 minutes)
+         ↓
+Interactive dashboard appears with insights:
+  • "287 customers at high risk, worth $47K"
+  • "Top reason: Haven't purchased in 60+ days"
+  • "Recommend: Send 20% discount to top 100"
+  • "Expected ROI: Save 35 customers = $15,750"
+         ↓
+User explores predictions, adjusts scenarios, exports reports
+```
+
+## **Core Value Proposition**
+
+**Traditional Approach:**
+- Business owner notices declining sales
+- Sends blanket discount to ALL customers
+- Wastes money on customers who'd buy anyway
+- Misses the truly at-risk customers
+
+**With This System:**
+- Identifies exactly who is at risk
+- Calculates the dollar value of each customer
+- Recommends targeted, cost-effective actions
+- Measures expected return on investment
+
+---
+
+# 2️⃣ **SYSTEM ARCHITECTURE OVERVIEW**
+
+## **High-Level Architecture Diagram**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    USER INTERFACE LAYER                        │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   Upload     │  │  Dashboard   │  │  Prediction  │        │
+│  │   Screen     │  │   & Charts   │  │   Explorer   │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   What-If    │  │   Reports    │  │   Settings   │        │
+│  │  Simulator   │  │   Export     │  │   & Config   │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+└────────────────────────────────────────────────────────────────┘
+                          ↕ HTTP/REST API
+┌────────────────────────────────────────────────────────────────┐
+│                      API GATEWAY LAYER                         │
+│                                                                │
+│  ┌────────────────────────────────────────────────────────┐   │
+│  │  FastAPI / Flask REST API                             │   │
+│  │  • Authentication & Authorization                      │   │
+│  │  • Request Validation                                  │   │
+│  │  • Rate Limiting                                       │   │
+│  │  • Error Handling                                      │   │
+│  └────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────┘
+                          ↕
+┌────────────────────────────────────────────────────────────────┐
+│                   BUSINESS LOGIC LAYER                         │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │     Data     │  │    AutoML    │  │   Insight    │        │
+│  │   Profiler   │  │    Engine    │  │  Generator   │        │
+│  │              │  │              │  │              │        │
+│  │  • Validate  │  │  • Train     │  │  • Segment   │        │
+│  │  • Clean     │  │  • Evaluate  │  │  • Calculate │        │
+│  │  • Analyze   │  │  • Select    │  │  • Recommend │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   Feature    │  │Explainability│  │     ROI      │        │
+│  │  Engineering │  │    Module    │  │  Calculator  │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+└────────────────────────────────────────────────────────────────┘
+                          ↕
+┌────────────────────────────────────────────────────────────────┐
+│                      DATA LAYER                                │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   Raw Data   │  │  Processed   │  │    Model     │        │
+│  │   Storage    │  │   Features   │  │   Registry   │        │
+│  │              │  │              │  │              │        │
+│  │  CSV/SQLite  │  │   Parquet    │  │   Pickled    │        │
+│  │              │  │   Files      │  │   Models     │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐                          │
+│  │  Metadata    │  │   Results    │                          │
+│  │   Database   │  │    Cache     │                          │
+│  └──────────────┘  └──────────────┘                          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+## **Architecture Pattern**
+
+This follows a **Layered (N-Tier) Architecture** pattern:
+
+**Benefits:**
+- **Separation of Concerns:** Each layer has a specific responsibility
+- **Maintainability:** Can update UI without touching ML logic
+- **Testability:** Each layer can be tested independently
+- **Scalability:** Can scale different layers independently
+
+---
+
+# 3️⃣ **DATA FLOW PIPELINE**
+
+## **Complete End-to-End Flow**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 1: DATA INGESTION                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+User Action: Upload CSV file via web interface
+    ↓
+Step 1.1: File Validation
+  • Check file format (CSV, Excel accepted)
+  • Verify file size (max 100MB)
+  • Scan for corruption
+  • Generate unique upload ID
+    ↓
+Step 1.2: Initial Parse
+  • Read first 100 rows for preview
+  • Detect delimiter (comma, semicolon, tab)
+  • Infer column data types
+  • Check encoding (UTF-8, Latin-1, etc.)
+    ↓
+Step 1.3: Column Mapping Interface
+  • Show detected columns to user
+  • User maps their columns to required fields:
+    - Customer ID → "user_id" or "customer_number"
+    - Transaction Date → "order_date" or "purchase_timestamp"
+    - Amount → "total_price" or "revenue"
+    - Product (optional) → "item_name" or "category"
+    ↓
+Step 1.4: Store Raw Data
+  • Save original file to disk
+  • Create database record with metadata
+  • Generate session token for user
+
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 2: DATA PROFILING & VALIDATION                          │
+└─────────────────────────────────────────────────────────────────┘
+
+    ↓
+Step 2.1: Schema Validation
+  • Verify required columns exist
+  • Check minimum record count (500+)
+  • Verify minimum unique customers (100+)
+  • Ensure date range spans 6+ months
+  • Validate data types match expectations
+    ↓
+Step 2.2: Data Quality Assessment
+  • Missing Values Analysis
+    - Count nulls per column
+    - Calculate percentage missing
+    - Flag if >20% missing in critical columns
+  
+  • Duplicate Detection
+    - Find exact duplicate rows
+    - Identify duplicate transactions (same customer, date, amount)
+    - Calculate duplication rate
+  
+  • Outlier Detection
+    - Flag transactions >3 std dev from mean
+    - Identify impossible values (negative amounts, future dates)
+    - Check for data entry errors
+  
+  • Consistency Checks
+    - Date format consistency
+    - Currency format verification
+    - Customer ID format validation
+    ↓
+Step 2.3: Exploratory Data Analysis
+  • Customer Statistics
+    - Total unique customers
+    - Average purchases per customer
+    - Customer lifetime distribution
+    - New vs returning customer ratio
+  
+  • Transaction Statistics
+    - Total transaction count
+    - Total revenue
+    - Average order value
+    - Min/max/median transaction amounts
+    - Transaction frequency distribution
+  
+  • Temporal Analysis
+    - Date range (start to end)
+    - Purchases per day/week/month
+    - Seasonality detection
+    - Growth/decline trends
+    - Day-of-week patterns
+  
+  • Product Analysis (if available)
+    - Number of unique products/categories
+    - Top selling items
+    - Product diversity per customer
+    ↓
+Step 2.4: Churn Definition
+  • Automatic Threshold Detection
+    - Calculate gaps between purchases for each customer
+    - Analyze distribution of gaps
+    - Find natural "elbow" in distribution
+    - Suggest threshold (typically 45-90 days)
+  
+  • Manual Override Option
+    - User can adjust threshold based on business knowledge
+    - Provide slider: 30-180 days
+    - Show impact: "With 60 days: 18.7% churn rate"
+  
+  • Label Creation
+    - For each customer, calculate days since last purchase
+    - Mark as "churned" if > threshold
+    - Mark as "active" if ≤ threshold
+    ↓
+Step 2.5: Class Balance Analysis
+  • Calculate churn rate
+  • Detect severe imbalance (if <10% or >90% churned)
+  • Recommend balancing strategy if needed:
+    - SMOTE (Synthetic Minority Oversampling)
+    - Undersampling majority class
+    - Class weights in models
+    ↓
+Step 2.6: Generate Profile Report
+  • Create comprehensive PDF/HTML report
+  • Include all visualizations
+  • Highlight data quality issues
+  • Provide recommendations for cleaning
+
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 3: FEATURE ENGINEERING                                   │
+└─────────────────────────────────────────────────────────────────┘
+
+    ↓
+Step 3.1: Customer Aggregation
+  Transform transaction-level data → customer-level features
+  
+  For each customer, calculate:
+  
+  • RFM Features (Recency, Frequency, Monetary)
+    - days_since_last_purchase (Recency)
+    - total_purchase_count (Frequency)
+    - average_order_value (Monetary)
+    - total_lifetime_spend (Monetary)
+  
+  • Temporal Features
+    - days_since_first_purchase (customer age)
+    - purchase_velocity (purchases per month)
+    - avg_days_between_purchases
+    - trend_last_3_months (increasing/decreasing)
+    - trend_last_6_months
+  
+  • Behavioral Features
+    - number_of_product_categories (diversity)
+    - favorite_category
+    - percent_repeat_products
+    - weekend_purchase_ratio
+    - evening_purchase_ratio (if timestamps available)
+  
+  • Engagement Features
+    - months_active
+    - longest_gap_between_purchases
+    - consistency_score (regularity of purchases)
+    - seasonality_preference
+  
+  • Value Features
+    - percentile_rank_by_spend (top 10%, 25%, etc.)
+    - customer_lifetime_value_estimate
+    - average_items_per_transaction (if quantity available)
+    - discount_usage_rate (if discount column available)
+    ↓
+Step 3.2: Feature Transformation
+  • Normalization
+    - Scale numeric features to 0-1 range
+    - Standardize features (mean=0, std=1)
+  
+  • Encoding
+    - One-hot encode categorical features (product categories)
+    - Label encode ordinal features
+  
+  • Binning
+    - Create age groups from days_since_first_purchase
+    - Create spend tiers from total_lifetime_spend
+    ↓
+Step 3.3: Feature Selection
+  • Remove highly correlated features (>0.95 correlation)
+  • Remove low-variance features
+  • Keep only features with sufficient data (not >80% null)
+  • Rank features by importance (preliminary analysis)
+    ↓
+Step 3.4: Create Feature Matrix
+  • Combine all features into single dataframe
+  • Each row = one customer
+  • Target variable: is_churned (0 or 1)
+  • Save processed features to disk (Parquet format for efficiency)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 4: MODEL TRAINING (AutoML Pipeline)                     │
+└─────────────────────────────────────────────────────────────────┘
+
+    ↓
+Step 4.1: Train-Test Split
+  • Split data: 80% training, 20% testing
+  • Use stratified split (maintain churn rate in both sets)
+  • Set random seed for reproducibility
+    ↓
+Step 4.2: Prepare 5 Models in Parallel
+
+  Model 1: Logistic Regression
+    - Simple, interpretable baseline
+    - Fast to train
+    - Good for understanding linear relationships
+  
+  Model 2: Random Forest Classifier
+    - Handles non-linear relationships
+    - Built-in feature importance
+    - Resistant to overfitting
+  
+  Model 3: XGBoost Classifier
+    - State-of-the-art gradient boosting
+    - Excellent performance on tabular data
+    - Handles imbalanced data well
+  
+  Model 4: LightGBM Classifier
+    - Faster than XGBoost
+    - Efficient with large datasets
+    - Good alternative to XGBoost
+  
+  Model 5: Support Vector Machine (SVM)
+    - Good for small-medium datasets
+    - Can capture complex boundaries
+    - Kernel trick for non-linearity
+    ↓
+Step 4.3: Cross-Validation Training
+  For each model:
+    • 5-Fold Cross-Validation on training set
+      - Split training data into 5 parts
+      - Train on 4 parts, validate on 1
+      - Rotate 5 times
+      - Average performance across all folds
+    
+    • Hyperparameter Tuning
+      - Try 3-5 different hyperparameter combinations
+      - Use grid search or random search
+      - Select best parameters based on validation F1-score
+    
+    • Handle Class Imbalance
+      - Use class weights if imbalanced
+      - Apply SMOTE if severely imbalanced (<20% minority)
+    ↓
+Step 4.4: Model Evaluation
+  For each model, calculate on test set:
+  
+  • Binary Classification Metrics
+    - Accuracy: Overall correctness
+    - Precision: Of predicted churners, how many actually churned
+    - Recall: Of actual churners, how many we caught
+    - F1-Score: Harmonic mean of precision and recall
+    - ROC-AUC: Overall discrimination ability
+  
+  • Business Metrics
+    - Precision@K: Precision in top K% predictions
+    - Expected Value: Dollar value of correct predictions
+    - Cost-Benefit Analysis: Compare intervention cost vs saved revenue
+  
+  • Reliability Metrics
+    - Cross-validation standard deviation
+    - Confidence intervals
+    - Calibration (are probabilities accurate?)
+    ↓
+Step 4.5: Model Selection
+  Ranking criteria (weighted):
+    1. F1-Score (40%): Balance precision and recall
+    2. Recall (30%): Don't miss churners
+    3. Business ROI Score (20%): Expected profit
+    4. Stability (10%): Low CV std deviation
+  
+  Select champion model
+  Save all models for comparison in dashboard
+    ↓
+Step 4.6: Final Model Training
+  • Retrain champion model on full training set
+  • Generate final predictions on test set
+  • Save model to disk (pickle or joblib format)
+  • Record model metadata (version, timestamp, performance)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 5: EXPLAINABILITY & INTERPRETABILITY                    │
+└─────────────────────────────────────────────────────────────────┘
+
+    ↓
+Step 5.1: Global Feature Importance
+  • Tree-based Models (Random Forest, XGBoost, LightGBM)
+    - Extract built-in feature importance scores
+    - Rank features by importance
+    - Calculate percentage contribution
+  
+  • Linear Models (Logistic Regression)
+    - Extract coefficients
+    - Show which features increase/decrease churn probability
+  
+  • Create Importance Visualizations
+    - Bar chart of top 10 features
+    - Feature contribution breakdown
+    ↓
+Step 5.2: SHAP Analysis (Optional but Recommended)
+  • Calculate SHAP values for each prediction
+    - Shows how each feature contributes to individual predictions
+    - Provides local explanations
+  
+  • Generate SHAP Visualizations
+    - Summary plot: Feature importance across all customers
+    - Force plots: Individual customer explanations
+    - Dependence plots: How feature values affect predictions
+  
+  • Use Cases
+    - "Why is Customer X predicted to churn?"
+    - "What if we changed feature Y for Customer X?"
+    ↓
+Step 5.3: Decision Rules Extraction
+  • For tree-based models, extract simple rules
+    - Example: "IF days_since_purchase > 60 AND total_purchases < 5 THEN high_churn_risk"
+  
+  • Create rule-based segments
+    - High Risk Profile: [specific conditions]
+    - Medium Risk Profile: [specific conditions]
+    - Low Risk Profile: [specific conditions]
+    ↓
+Step 5.4: Confidence Calibration
+  • Ensure predicted probabilities are reliable
+  • If probability says "70% churn," it should be ~70% in reality
+  • Apply calibration if needed (Platt scaling or isotonic regression)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 6: INSIGHT GENERATION                                    │
+└─────────────────────────────────────────────────────────────────┘
+
+    ↓
+Step 6.1: Customer Risk Segmentation
+  Based on churn probability, segment customers:
+  
+  • High Risk (prob > 0.7)
+    - Count customers
+    - Calculate total revenue at risk
+    - Calculate average CLV
+    - Identify common characteristics
+  
+  • Medium Risk (0.4 < prob ≤ 0.7)
+    - Similar analysis
+  
+  • Low Risk (prob ≤ 0.4)
+    - Similar analysis
+    ↓
+Step 6.2: Driver Analysis
+  Answer: "Why are customers churning?"
+  
+  • Top Churn Drivers
+    - Rank features by average importance in high-risk segment
+    - Example findings:
+      * "78% of high-risk customers haven't purchased in 60+ days"
+      * "65% have declining purchase frequency"
+      * "Average order value dropped 30% in last 3 months"
+  
+  • Segment-Specific Insights
+    - Different segments may churn for different reasons
+    - Create persona-based explanations
+    ↓
+Step 6.3: Revenue Impact Calculation
+  For each risk segment:
+  
+  • At-Risk Revenue
+    - Sum of CLV for all customers in segment
+    - Example: 287 high-risk customers × $165 avg CLV = $47,355
+  
+  • Recoverable Revenue
+    - Assume intervention success rate (30-40% typical)
+    - Example: Save 35-40% of at-risk customers = $16,642-$18,942
+    ↓
+Step 6.4: Action Recommendations
+  Generate specific, actionable recommendations:
+  
+  • Targeting Strategy
+    - "Focus on top 100 highest-value at-risk customers"
+    - "These 100 represent $28,500 in CLV"
+  
+  • Intervention Type
+    - Discount offer: "Send 15-20% discount code"
+    - Personalized outreach: "Manager phone call"
+    - Product recommendation: "Suggest complementary products"
+    - Re-engagement campaign: "Special comeback offer"
+  
+  • Cost-Benefit Analysis
+    - Intervention cost: $800 (100 × $8 discount avg)
+    - Expected saves: 35-40 customers
+    - Saved revenue: $5,775-$6,600
+    - Net ROI: $4,975-$5,800 (620-725% return)
+    ↓
+Step 6.5: What-If Scenarios
+  Pre-calculate scenarios for dashboard:
+  
+  • Scenario A: Target top 50 (conservative)
+  • Scenario B: Target top 100 (recommended)
+  • Scenario C: Target top 200 (aggressive)
+  • Scenario D: Target all high-risk (maximum reach)
+  
+  For each scenario, calculate:
+    - Total cost
+    - Expected customers saved
+    - Expected revenue saved
+    - ROI percentage
+    ↓
+Step 6.6: Trend Predictions
+  • Forecast next 3-6 months
+    - Expected churn rate trajectory
+    - Revenue impact if no action taken
+    - Cumulative customer loss
+  
+  • Early Warning System
+    - Customers moving from medium → high risk
+    - New customers showing early churn signals
+
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 7: RESULTS PRESENTATION                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+    ↓
+Step 7.1: Dashboard Rendering
+  Display comprehensive results interface with:
+  
+  • Executive Summary Card
+    - Total customers analyzed
+    - Overall churn rate
+    - Revenue at risk
+    - Recommended action
+  
+  • Model Performance Section
+    - Comparison table of all 5 models
+    - Champion model highlighted
+    - Metrics displayed: F1, Precision, Recall, ROC-AUC
+  
+  • Feature Importance Charts
+    - Bar chart of top 10 drivers
+    - Interactive: Click to see detailed breakdown
+  
+  • Risk Segmentation View
+    - Pie chart: High/Medium/Low risk distribution
+    - Table: Segment characteristics
+  
+  • Customer Explorer
+    - Searchable/filterable table of all customers
+    - Each row shows:
+      * Customer ID
+      * Churn probability
+      * Risk tier
+      * Last purchase date
+      * CLV
+      * Top risk factors
+  
+  • ROI Calculator
+    - Interactive sliders:
+      * Number of customers to target
+      * Discount percentage
+      * Expected success rate
+    - Real-time ROI calculation
+  
+  • What-If Simulator
+    - Adjust feature values
+    - See how churn probability changes
+    - Example: "What if customer purchased today?"
+    ↓
+Step 7.2: Export Options
+  • PDF Report
+    - Executive summary
+    - Model performance
+    - Top insights
+    - Recommendations
+  
+  • CSV Export
+    - Customer risk scores
+    - Predictions for all customers
+    - Feature values
+  
+  • Target List
+    - Filtered list of high-risk customers for campaigns
+    - Includes contact info if available
+    ↓
+Step 7.3: Monitoring Setup (Future)
+  • Schedule automatic re-runs (weekly/monthly)
+  • Email alerts when:
+    - Churn rate spikes
+    - High-value customer enters high-risk
+    - Model performance degrades
+```
+
+---
+
+# 4️⃣ **COMPONENT ARCHITECTURE**
+
+## **A. Data Profiler Component**
+
+### **Responsibilities:**
+- Validate uploaded data meets requirements
+- Clean and preprocess raw data
+- Generate comprehensive data quality reports
+- Detect optimal churn threshold
+- Analyze class balance
+
+### **Key Algorithms:**
+- **Missing Value Imputation:** Mean/median for numeric, mode for categorical
+- **Outlier Detection:** IQR method, Z-score, Isolation Forest
+- **Churn Threshold Detection:** Elbow method on purchase gap distribution
+- **Seasonality Detection:** Time series decomposition
+
+### **Outputs:**
+- Data quality score (0-10)
+- Recommended churn threshold (days)
+- Class balance ratio
+- Data profile report (JSON/HTML)
+
+---
+
+## **B. Feature Engineering Component**
+
+### **Responsibilities:**
+- Transform transaction-level data to customer-level
+- Create predictive features from raw data
+- Handle missing values in features
+- Normalize and scale features
+- Select most important features
+
+### **Feature Categories:**
+
+**1. RFM Features (Recency, Frequency, Monetary)**
+- Core of customer behavior analysis
+- Proven predictive power in retail
+
+**2. Temporal Features**
+- Capture trends over time
+- Identify changes in behavior
+
+**3. Behavioral Features**
+- Product preferences
+- Shopping patterns
+- Engagement indicators
+
+**4. Derived Features**
+- Ratios and percentages
+- Interaction terms
+- Polynomial features (if beneficial)
+
+### **Feature Engineering Techniques:**
+- Aggregation (sum, mean, count, min, max)
+- Window functions (rolling averages, trends)
+- Lag features (previous period comparisons)
+- Encoding (one-hot, label, target encoding)
+
+---
+
+## **C. AutoML Engine Component**
+
+### **Responsibilities:**
+- Train multiple ML models automatically
+- Perform hyperparameter tuning
+- Cross-validate for reliable performance
+- Select best model based on business metrics
+- Handle class imbalance
+
+### **Model Training Strategy:**
+
+**Phase 1: Baseline Models**
+- Logistic Regression (simple, fast, interpretable)
+- Decision Tree (non-linear, interpretable)
+
+**Phase 2: Ensemble Models**
+- Random Forest (robust, handles overfitting)
+- XGBoost (high performance, industry standard)
+- LightGBM (fast, efficient)
+
+**Phase 3: Advanced Models (Optional)**
+- SVM with RBF kernel
+- Neural Network (small, 2-3 layers)
+
+### **Hyperparameter Tuning:**
+- Grid Search for small parameter spaces
+- Random Search for large parameter spaces
+- Bayesian Optimization (if time permits)
+
+### **Cross-Validation Strategy:**
+- 5-Fold Stratified CV
+- Ensures each fold has same churn ratio
+- Provides reliable performance estimates
+
+### **Model Selection Criteria:**
+
+**Primary Metrics:**
+- **F1-Score:** Balance of precision and recall
+- **Recall:** Don't miss churners (false negatives costly)
+- **Precision@Top20%:** Accuracy on highest-risk customers
+
+**Secondary Metrics:**
+- **ROI Score:** Expected business value
+- **Stability:** Low variance across CV folds
+- **Training Time:** Faster is better for user experience
+- **Interpretability:** Can we explain predictions?
+
+---
+
+## **D. Explainability Module**
+
+### **Responsibilities:**
+- Explain global model behavior
+- Provide local explanations for individual predictions
+- Extract decision rules
+- Generate business-friendly insights
+
+### **Techniques Used:**
+
+**1. Feature Importance**
+- Tree-based: Built-in importance scores
+- Linear models: Coefficient magnitudes
+- Permutation importance: Universal method
+
+**2. SHAP (SHapley Additive exPlanations)**
+- Gold standard for model explanations
+- Shows exact contribution of each feature
+- Works for any model type
+- Computationally intensive (use sampling for large datasets)
+
+**3. LIME (Local Interpretable Model-agnostic Explanations)**
+- Alternative to SHAP
+- Faster but less accurate
+- Good for quick approximations
+
+**4. Partial Dependence Plots**
+- Show relationship between feature and prediction
+- Visualize non-linear effects
+
+**5. Decision Rules**
+- Extract simple IF-THEN rules
+- Easy for business users to understand
+
+---
+
+## **E. Insight Generator Component**
+
+### **Responsibilities:**
+- Translate ML predictions into business language
+- Calculate financial impact
+- Generate actionable recommendations
+- Create customer segments
+- Simulate intervention scenarios
+
+### **Insight Types:**
+
+**1. Diagnostic Insights (Why is this happening?)**
+- "Top churn driver: 78% of high-risk customers haven't purchased in 60+ days"
+- "Churn rate increased 4.2% from last quarter"
+
+**2. Predictive Insights (What will happen?)**
+- "287 customers likely to churn in next 60 days"
+- "Expected revenue loss: $47,355 if no action taken"
+
+**3. Prescriptive Insights (What should we do?)**
+- "Target top 100 with 20% discount"
+- "Expected ROI: $15,750 (save 35-40 customers)"
+
+**4. Comparative Insights (How do segments differ?)**
+- "High-risk customers: avg 62 days since purchase"
+- "Low-risk customers: avg 12 days since purchase"
+
+### **ROI Calculation Formula:**
+
+```
+For each intervention scenario:
+
+1. Identify Target Customers
+   - Based on risk threshold (e.g., prob > 0.7)
+   - Rank by CLV (target highest value first)
+
+2. Calculate Intervention Cost
+   - Discount cost per customer
+   - Campaign costs (email, SMS, etc.)
+   - Staff time for personalized outreach
+
+3. Estimate Success Rate
+   - Historical retention rate (if available)
+   - Industry benchmarks (30-40% typical)
+   - Conservative estimate for first run
+
+4. Calculate Expected Saves
+   - Target customers × Success rate
+   - Example: 100 × 35% = 35 customers
+
+5. Calculate Saved Revenue
+   - Saved customers × Average CLV
+   - Example: 35 × $165 = $5,775
+
+6. Calculate Net ROI
+   - Saved revenue - Intervention cost
+   - Example: $5,775 - $800 = $4,975
+   - ROI percentage: ($4,975 / $800) × 100 = 622%
+```
+
+---
+
+## **F. What-If Simulator Component**
+
+### **Responsibilities:**
+- Allow users to test different scenarios
+- Real-time prediction updates
+- Sensitivity analysis
+- Campaign planning support
+
+### **Simulation Types:**
+
+**1. Feature Manipulation**
+- "What if customer purchased today?"
+  - Set days_since_purchase = 0
+  - Recalculate prediction
+  - Show new churn probability
+
+**2. Intervention Scenarios**
+- Vary number of customers targeted
+- Adjust discount percentages
+- Change expected success rates
+- See impact on ROI
+
+**3. Threshold Adjustments**
+- Change churn definition (45 days vs 60 days vs 90 days)
+- See how churn rate changes
+- Impacts segmentation
+
+**4. Batch Simulations**
+- Upload hypothetical customer data
+- Get predictions without retraining
+- Useful for planning
+
+---
+
+# 5️⃣ **MACHINE LEARNING PIPELINE**
+
+## **Detailed ML Workflow**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ML PIPELINE ARCHITECTURE                     │
+└─────────────────────────────────────────────────────────────────┘
+
+INPUT: Customer-level feature matrix (15,247 rows × 28 features)
+       Target: is_churned (binary: 0 or 1)
+
+┌──────────────────────────────────────┐
+│ STEP 1: Data Preparation             │
+├──────────────────────────────────────┤
+│ • Remove customers with <2 purchases │
+│ • Handle remaining missing values    │
+│ • Remove duplicate customers         │
+│ • Verify target variable             │
+│                                      │
+│ Result: Clean feature matrix         │
+│         14,823 customers ready       │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ STEP 2: Train-Test Split             │
+├──────────────────────────────────────┤
+│ • 80-20 split                        │
+│ • Stratified by churn status         │
+│ • Random seed: 42 (reproducible)     │
+│                                      │
+│ Training set: 11,858 customers       │
+│   - Churned: 2,218 (18.7%)          │
+│   - Active: 9,640 (81.3%)           │
+│                                      │
+│ Test set: 2,965 customers            │
+│   - Churned: 555 (18.7%)            │
+│   - Active: 2,410 (81.3%)           │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ STEP 3: Feature Preprocessing        │
+├──────────────────────────────────────┤
+│ Fit on training data only!           │
+│                                      │
+│ • StandardScaler for numeric         │
+│   (mean=0, std=1)                   │
+│                                      │
+│ • OneHotEncoder for categorical      │
+│   (product categories)               │
+│                                      │
+│ Save preprocessor for later use      │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ STEP 4: Handle Class Imbalance       │
+├──────────────────────────────────────┤
+│ Churn rate: 18.7% (moderately imb.)  │
+│                                      │
+│ Strategy:                            │
+│ • Use class_weight='balanced'        │
+│   (for models that support it)       │
+│                                      │
+│ • Alternatively: SMOTE               │
+│   (Synthetic Minority Oversampling)  │
+│   - Creates synthetic churned custos │
+│   - Balances to ~40-60% split        │
+└──────────────────────────────────────┘
+           ↓
+┌────────────────────────────────────────────────────────────────┐
+│ STEP 5: Model Training (5 Models in Parallel)                 │
+└────────────────────────────────────────────────────────────────┘
+           ↓
+    ╔═══════════╗     ╔═══════════╗     ╔═══════════╗
+    ║  Model 1  ║     ║  Model 2  ║     ║  Model 3  ║
+    ║ Logistic  ║     ║  Random   ║     ║  XGBoost  ║
+    ║Regression ║     ║  Forest   ║     ║           ║
+    ╚═══════════╝     ╚═══════════╝     ╚═══════════╝
+    
+    ╔═══════════╗     ╔═══════════╗
+    ║  Model 4  ║     ║  Model 5  ║
+    ║ LightGBM  ║     ║    SVM    ║
+    ║           ║     ║           ║
+    ╚═══════════╝     ╚═══════════╝
+
+Each model undergoes:
+
+┌──────────────────────────────────────┐
+│ 5-Fold Cross-Validation              │
+├──────────────────────────────────────┤
+│                                      │
+│ Fold 1: Train[2,3,4,5] → Val[1]    │
+│ Fold 2: Train[1,3,4,5] → Val[2]    │
+│ Fold 3: Train[1,2,4,5] → Val[3]    │
+│ Fold 4: Train[1,2,3,5] → Val[4]    │
+│ Fold 5: Train[1,2,3,4] → Val[5]    │
+│                                      │
+│ Calculate mean & std of metrics      │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ Hyperparameter Tuning (each model)   │
+├──────────────────────────────────────┤
+│                                      │
+│ Logistic Regression:                 │
+│   • C: [0.01, 0.1, 1, 10]           │
+│   • penalty: ['l1', 'l2']           │
+│                                      │
+│ Random Forest:                       │
+│   • n_estimators: [100, 200, 300]   │
+│   • max_depth: [10, 20, None]       │
+│   • min_samples_split: [2, 5, 10]   │
+│                                      │
+│ XGBoost:                             │
+│   • learning_rate: [0.01, 0.1, 0.3] │
+│   • max_depth: [3, 5, 7]            │
+│   • n_estimators: [100, 200, 300]   │
+│                                      │
+│ ... (similar for other models)       │
+│                                      │
+│ Select best params by CV F1-score    │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ STEP 6: Model Evaluation              │
+├──────────────────────────────────────┤
+│ Predict on held-out test set          │
+│                                      │
+│ Model Performance Table:             │
+│ ┌────────┬────┬─────┬─────┬──────┐ │
+│ │ Model  │ F1 │ Prec│Recal│ AUC  │ │
+│ ├────────┼────┼─────┼─────┼──────┤ │
+│ │Logistic│.78 │ .82 │ .75 │ .85  │ │
+│ │RandFor│.85 │ .87 │ .82 │ .91  │ │
+│ │XGBoost│.84 │ .86 │ .83 │ .92  │ │
+│ │LightGBM│.83 │ .85 │ .81 │ .90  │ │
+│ │SVM    │.79 │ .81 │ .77 │ .86  │ │
+│ └────────┴────┴─────┴─────┴──────┘ │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ STEP 7: Champion Model Selection     │
+├──────────────────────────────────────┤
+│                                      │
+│ Scoring Formula:                     │
+│   Score = 0.4×F1 + 0.3×Recall +     │
+│           0.2×ROI_metric + 0.1×Speed│
+│                                      │
+│ Winner: Random Forest                │
+│   • Best F1 score (0.85)            │
+│   • High recall (0.82)              │
+│   • Built-in interpretability       │
+│   • Stable across CV folds          │
+│                                      │
+│ Save champion model to disk          │
+└──────────────────────────────────────┘
+           ↓
+┌──────────────────────────────────────┐
+│ STEP 8: Final Predictions             │
+├──────────────────────────────────────┤
+│                                      │
+│ Apply champion model to:             │
+│                                      │
+│ 1. Test set (for reporting)          │
+│    - Performance metrics             │
+│    - Confusion matrix                │
+│                                      │
+│ 2. Full dataset (for dashboard)      │
+│    - Churn probability for each cust │
+│    - Risk tier assignment            │
+│    - Top risk factors per customer   │
+│                                      │
+│ 3. Save predictions to database      │
+└──────────────────────────────────────┘
+```
+
+## **Model Performance Metrics Explained**
+
+### **Confusion Matrix**
+
+```
+                    PREDICTED
+                Churned    Active
+              ┌──────────┬─────────┐
+   Churned    │   456    │   99    │  555 (actual churned)
+ACTUAL         │  (TP)    │  (FN)   │
+              ├──────────┼─────────┤
+   Active     │    72    │  2,338  │  2,410 (actual active)
+              │  (FP)    │  (TN)   │
+              └──────────┴─────────┘
+                  528      2,437     2,965 (total)
+```
+
+**Metrics Calculation:**
+- **Accuracy** = (TP + TN) / Total = (456 + 2,338) / 2,965 = **94.2%**
+- **Precision** = TP / (TP + FP) = 456 / (456 + 72) = **86.4%**
+- **Recall** = TP / (TP + FN) = 456 / (456 + 99) = **82.2%**
+- **F1-Score** = 2 × (Precision × Recall) / (Precision + Recall) = **84.2%**
+
+### **Business Translation**
+
+- **Precision (86.4%):** Of customers we predict will churn, 86% actually do
+  - Low false positives = Don't waste discount on customers who'd stay anyway
+  
+- **Recall (82.2%):** Of customers who actually churn, we catch 82%
+  - We miss 18% of churners (false negatives)
+  - These are lost revenue opportunities
+  
+- **F1-Score (84.2%):** Balanced view of model quality
+  - Good balance between precision and recall
+
+---
+
+# 6️⃣ **FRONTEND ARCHITECTURE**
+
+## **User Interface Structure**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                        WEB APPLICATION                         │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ PAGE 1: Upload & Configuration                                │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Drag & Drop CSV Upload Area                             │ │
+│  │  "Drop your customer transaction file here"              │ │
+│  │  Supported: CSV, Excel (.xlsx)                           │ │
+│  │  Max size: 100MB                                         │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  After upload:                                                 │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Column Mapping Interface                                │ │
+│  │  ┌────────────────┬──────────────────────────────────┐   │ │
+│  │  │ Required Field │ Select Your Column              │   │ │
+│  │  ├────────────────┼──────────────────────────────────┤   │ │
+│  │  │ Customer ID    │ [Dropdown: user_id         ▼]  │   │ │
+│  │  │ Purchase Date  │ [Dropdown: order_date      ▼]  │   │ │
+│  │  │ Amount         │ [Dropdown: total_price     ▼]  │   │ │
+│  │  │ Product (opt)  │ [Dropdown: item_name       ▼]  │   │ │
+│  │  └────────────────┴──────────────────────────────────┘   │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Churn Definition                                        │ │
+│  │  ┌────────────────────────────────────────────────────┐ │ │
+│  │  │ Auto-detected threshold: 60 days                   │ │ │
+│  │  │ [Slider: 30 ←───●──→ 180 days]                    │ │ │
+│  │  │ Preview: With 60 days → 18.7% churn rate          │ │ │
+│  │  └────────────────────────────────────────────────────┘ │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  [Start Analysis Button]                                       │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ PAGE 2: Processing (shown while models train)                 │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Analysis Progress                                       │ │
+│  │                                                          │ │
+│  │  ✓ Data validated (15,247 customers found)              │ │
+│  │  ✓ Features engineered (28 features created)            │ │
+│  │  ⏳ Training models... (3 of 5 complete)                 │ │
+│  │  [████████████░░░░░░░░] 60%                             │ │
+│  │  ⏸ Evaluating performance...                            │ │
+│  │  ⏸ Generating insights...                               │ │
+│  │                                                          │ │
+│  │  Estimated time remaining: 90 seconds                   │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ PAGE 3: Dashboard (Main Results Interface)                    │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Executive Summary                                       │ │
+│  │                                                          │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │ │
+│  │  │ 15,247   │ │  18.7%   │ │  $47K    │ │  Random   │  │ │
+│  │  │Customers │ │Churn Rate│ │At Risk   │ │  Forest   │  │ │
+│  │  └──────────┘ └──────────┘ └──────────┘ └───────────┘  │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────┬─────────────────────────────┐   │
+│  │  Model Performance       │  Feature Importance         │   │
+│  │  ┌────────┬────┬────┬──┐│  ┌───────────────────────┐ │   │
+│  │  │ Model  │ F1 │Rec │AU││  │days_since_purchase ██████│ │
+│  │  ├────────┼────┼────┼──┤│  │purchase_frequency  ████│ │
+│  │  │Logistic│.78 │.75 │.8││  │avg_order_value     ███│ │
+│  │  │RandFor★│.85 │.82 │.9││  │total_lifetime_spend ██│ │
+│  │  │XGBoost │.84 │.83 │.9││  │category_diversity   █│ │
+│  │  │LightGBM│.83 │.81 │.9││  └───────────────────────┘ │
+│  │  │SVM     │.79 │.77 │.8││                             │   │
+│  │  └────────┴────┴────┴──┘│  [View Detailed Analysis]   │   │
+│  └──────────────────────────┴─────────────────────────────┘   │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Risk Segmentation                                       │ │
+│  │                                                          │ │
+│  │  ┌─────────────┐  ┌─────────────────────────────────┐  │ │
+│  │  │   ╱       ╲ │  │ Segment      Count   Revenue    │  │ │
+│  │  │  │ 70.5%  │ │  │ High Risk     287    $47,355   │  │ │
+│  │  │  │ (Low)  │ │  │ Medium Risk  1,203   $182,120  │  │ │
+│  │  │   ╲       ╱ │  │ Low Risk    13,757  $1,874,500 │  │ │
+│  │  │   18.7%     │  └─────────────────────────────────┘  │ │
+│  │  │  (High)     │                                        │ │
+│  │  └─────────────┘  [Export Risk List]                    │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Recommended Actions                                     │ │
+│  │                                                          │ │
+│  │  🎯 Primary Recommendation:                              │ │
+│  │  Target top 100 highest-value at-risk customers          │ │
+│  │                                                          │ │
+│  │  💰 Expected Outcome:                                    │ │
+│  │  • Intervention cost: $800                               │ │
+│  │  • Customers saved: 35-40 (35% success rate)            │ │
+│  │  • Revenue protected: $5,775-$6,600                      │ │
+│  │  • Net ROI: $4,975-$5,800 (622-725%)                    │ │
+│  │                                                          │ │
+│  │  📋 Suggested Campaign:                                  │ │
+│  │  • Email subject: "We miss you! Here's 20% off"         │ │
+│  │  • Personalize with last purchase date                   │ │
+│  │  • Include product recommendations                       │ │
+│  │  • Add urgency: "Valid for 14 days"                     │ │
+│  │                                                          │ │
+│  │  [Download Customer List] [Create Campaign]             │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  [Tabs: Overview | Customer Explorer | What-If | Reports]     │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ PAGE 4: Customer Explorer                                      │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Filters                                                 │ │
+│  │  [Risk: All ▼] [CLV: >$100 ▼] [Last Purchase: <60d ▼]  │ │
+│  │  [Search customer ID...]                                 │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Customer Table (sortable, paginated)                    │ │
+│  │  ┌────────┬──────┬─────┬──────┬──────┬────────────────┐ │ │
+│  │  │Cust ID │Churn │Risk │ CLV  │Last  │Top Risk Factor │ │ │
+│  │  │        │Prob  │Tier │      │Purch │                │ │ │
+│  │  ├────────┼──────┼─────┼──────┼──────┼────────────────┤ │ │
+│  │  │C00542  │ 94%  │ High│ $287 │ 78d  │Long absence    │ │ │
+│  │  │C01834  │ 89%  │ High│ $165 │ 65d  │Declining freq  │ │ │
+│  │  │C00912  │ 76%  │ High│ $312 │ 54d  │Low engagement  │ │ │
+│  │  │C03421  │ 72%  │ High│ $198 │ 61d  │Long absence    │ │ │
+│  │  │...     │ ...  │ ... │ ...  │ ...  │ ...            │ │ │
+│  │  └────────┴──────┴─────┴──────┴──────┴────────────────┘ │ │
+│  │  [Click row for details]               [Export filtered] │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Customer Detail Panel (when row clicked)                │ │
+│  │                                                          │ │
+│  │  Customer C00542                                         │ │
+│  │  Churn Probability: 94% ████████████████████░            │ │
+│  │                                                          │ │
+│  │  📊 Profile:                                             │ │
+│  │  • Customer Lifetime Value: $287                         │ │
+│  │  • Total Purchases: 23                                   │ │
+│  │  • Average Order: $12.48                                 │ │
+│  │  • Member Since: March 2023 (22 months)                  │ │
+│  │  • Last Purchase: 78 days ago                            │ │
+│  │                                                          │ │
+│  │  🚨 Risk Factors (SHAP explanation):                     │ │
+│  │  ┌──────────────────────────────────────────┐           │ │
+│  │  │ Days since purchase (78) ████████ +0.42  │           │ │
+│  │  │ Declining frequency      ████     +0.18  │           │ │
+│  │  │ Low recent spend         ██       +0.09  │           │ │
+│  │  │ Category diversity (low) █        +0.05  │           │ │
+│  │  └──────────────────────────────────────────┘           │ │
+│  │                                                          │ │
+│  │  💡 What-If:                                             │ │
+│  │  If customer purchased today: 94% → 12% churn risk       │ │
+│  │                                                          │ │
+│  │  [Add to Campaign] [View Full History]                  │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ PAGE 5: What-If Simulator                                      │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Campaign Planner                                        │ │
+│  │                                                          │ │
+│  │  Target Customers:                                       │ │
+│  │  [Slider: 50 ←───●──→ 500]  Current: 100                │ │
+│  │                                                          │ │
+│  │  Discount Percentage:                                    │ │
+│  │  [Slider: 5% ←───●──→ 30%]  Current: 20%                │ │
+│  │                                                          │ │
+│  │  Expected Success Rate:                                  │ │
+│  │  [Slider: 10% ←───●──→ 60%]  Current: 35%               │ │
+│  │                                                          │ │
+│  │  ┌────────────────────────────────────────────────────┐ │ │
+│  │  │  Real-Time ROI Calculation                         │ │ │
+│  │  │                                                    │ │ │
+│  │  │  Target: 100 customers                             │ │ │
+│  │  │  Total CLV at risk: $16,500                        │ │ │
+│  │  │                                                    │ │ │
+│  │  │  Campaign Cost:                                    │ │ │
+│  │  │  • Discount (100 × $8 avg): $800                   │ │ │
+│  │  │  • Email cost: $0                                  │ │ │
+│  │  │  Total: $800                                       │ │ │
+│  │  │                                                    │ │ │
+│  │  │  Expected Results:                                 │ │ │
+│  │  │  • Customers saved: 35 (35% × 100)                 │ │ │
+│  │  │  • Revenue protected: $5,775 (35 × $165)           │ │ │
+│  │  │                                                    │ │ │
+│  │  │  Net ROI: $4,975                                   │ │ │
+│  │  │  ROI%: 622% ⭐ EXCELLENT                            │ │ │
+│  │  └────────────────────────────────────────────────────┘ │ │
+│  │                                                          │ │
+│  │  [Compare Scenarios] [Save Plan]                        │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  Scenario Comparison                                     │ │
+│  │  ┌────────┬────────┬──────┬────────┬─────────┬────────┐ │ │
+│  │  │Scenario│Targets │Disc% │Cost    │Saved    │Net ROI │ │ │
+│  │  ├────────┼────────┼──────┼────────┼─────────┼────────┤ │ │
+│  │  │Conserv.│   50   │ 15%  │  $300  │ $2,888  │ $2,588 │ │ │
+│  │  │Balanced│  100★  │ 20%  │  $800  │ $5,775  │ $4,975 │ │ │
+│  │  │Aggress.│  200   │ 25%  │ $2,000 │ $11,550 │ $9,550 │ │ │
+│  │  └────────┴────────┴──────┴────────┴─────────┴────────┘ │ │
+│  │                                                          │ │
+│  │  ★ = Recommended based on ROI%                           │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+## **Frontend Technology Choices**
+
+### **Option 1: Streamlit (Recommended for MVP)**
+
+**Pros:**
+- Extremely fast development (entire UI in pure Python)
+- Built-in components for charts, tables, sliders
+- No frontend coding needed
+- Great for data science applications
+- Easy deployment
+
+**Cons:**
+- Limited customization
+- Not as polished as custom React
+- Can be slow with very large datasets
+
+**Use Case:** Perfect for MVP, demo, portfolio project
+
+---
+
+### **Option 2: React + Tailwind CSS**
+
+**Pros:**
+- Highly customizable, professional look
+- Better performance
+- More interactive features possible
+- Better for production applications
+
+**Cons:**
+- Longer development time
+- Need to know JavaScript/React
+- More complex deployment
+
+**Use Case:** If you want to showcase frontend skills too
+
+---
+
+### **Recommended Choice for This Project:**
+
+**Start with Streamlit for these reasons:**
+1. This is primarily an ML project, not a frontend project
+2. Focus your time on ML pipeline quality
+3. Streamlit looks professional enough for demos
+4. Can always rebuild in React later if needed
+5. Faster time-to-completion
+
+---
+
+# 7️⃣ **BACKEND ARCHITECTURE**
+
+## **API Design**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                         REST API LAYER                         │
+│                        (FastAPI / Flask)                       │
+└────────────────────────────────────────────────────────────────┘
+
+BASE URL: http://localhost:8000/api/v1
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 1: Upload Dataset                                   │
+├──────────────────────────────────────────────────────────────┤
+│ POST /upload                                                 │
+│                                                              │
+│ Request:                                                     │
+│   multipart/form-data                                        │
+│   - file: CSV/Excel file                                     │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "upload_id": "abc123",                                   │
+│     "filename": "customer_data.csv",                         │
+│     "rows": 15247,                                           │
+│     "columns": ["user_id", "order_date", "total_price"],    │
+│     "preview": [...first 5 rows...],                         │
+│     "detected_types": {                                      │
+│       "user_id": "string",                                   │
+│       "order_date": "datetime",                              │
+│       "total_price": "float"                                 │
+│     }                                                        │
+│   }                                                          │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 2: Configure Analysis                               │
+├──────────────────────────────────────────────────────────────┤
+│ POST /configure                                              │
+│                                                              │
+│ Request:                                                     │
+│   {                                                          │
+│     "upload_id": "abc123",                                   │
+│     "column_mapping": {                                      │
+│       "customer_id": "user_id",                              │
+│       "date": "order_date",                                  │
+│       "amount": "total_price",                               │
+│       "product": "item_name"                                 │
+│     },                                                       │
+│     "churn_threshold_days": 60                               │
+│   }                                                          │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "session_id": "xyz789",                                  │
+│     "status": "configured",                                  │
+│     "validation_results": {                                  │
+│       "has_required_columns": true,                          │
+│       "min_records": true,                                   │
+│       "min_customers": true,                                 │
+│       "quality_score": 8.7                                   │
+│     }                                                        │
+│   }                                                          │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 3: Start Training                                   │
+├──────────────────────────────────────────────────────────────┤
+│ POST /train                                                  │
+│                                                              │
+│ Request:                                                     │
+│   {                                                          │
+│     "session_id": "xyz789"                                   │
+│   }                                                          │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "job_id": "train_001",                                   │
+│     "status": "started",                                     │
+│     "estimated_time_seconds": 180                            │
+│   }                                                          │
+│                                                              │
+│ Note: This is async - training happens in background        │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 4: Check Training Status                            │
+├──────────────────────────────────────────────────────────────┤
+│ GET /train/status/{job_id}                                   │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "job_id": "train_001",                                   │
+│     "status": "in_progress",                                 │
+│     "progress": 60,                                          │
+│     "current_step": "training_model_3",                      │
+│     "steps_completed": [                                     │
+│       "data_validated",                                      │
+│       "features_engineered",                                 │
+│       "model_1_trained",                                     │
+│       "model_2_trained"                                      │
+│     ],                                                       │
+│     "estimated_remaining_seconds": 72                        │
+│   }                                                          │
+│                                                              │
+│ When complete, status becomes "completed"                    │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 5: Get Results                                      │
+├──────────────────────────────────────────────────────────────┤
+│ GET /results/{session_id}                                    │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "summary": {                                             │
+│       "total_customers": 15247,                              │
+│       "churn_rate": 0.187,                                   │
+│       "revenue_at_risk": 47355,                              │
+│       "champion_model": "random_forest"                      │
+│     },                                                       │
+│     "model_performance": [                                   │
+│       {                                                      │
+│         "model": "random_forest",                            │
+│         "f1": 0.85,                                          │
+│         "precision": 0.87,                                   │
+│         "recall": 0.82,                                      │
+│         "roc_auc": 0.91                                      │
+│       },                                                     │
+│       {...other models...}                                   │
+│     ],                                                       │
+│     "feature_importance": [                                  │
+│       {"feature": "days_since_purchase", "importance": 0.32},│
+│       {"feature": "purchase_frequency", "importance": 0.18}, │
+│       ...                                                    │
+│     ],                                                       │
+│     "segments": {                                            │
+│       "high_risk": {                                         │
+│         "count": 287,                                        │
+│         "revenue": 47355,                                    │
+│         "avg_clv": 165                                       │
+│       },                                                     │
+│       "medium_risk": {...},                                  │
+│       "low_risk": {...}                                      │
+│     },                                                       │
+│     "recommendations": {                                     │
+│       "primary": {                                           │
+│         "action": "target_top_100",                          │
+│         "discount_percent": 20,                              │
+│         "expected_cost": 800,                                │
+│         "expected_saves": 35,                                │
+│         "expected_revenue": 5775,                            │
+│         "roi": 622                                           │
+│       }                                                      │
+│     }                                                        │
+│   }                                                          │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 6: Get Customer Predictions                         │
+├──────────────────────────────────────────────────────────────┤
+│ GET /predictions/{session_id}                                │
+│     ?risk_tier=high                                          │
+│     &limit=100                                               │
+│     &offset=0                                                │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "total": 287,                                            │
+│     "page": 1,                                               │
+│     "customers": [                                           │
+│       {                                                      │
+│         "customer_id": "C00542",                             │
+│         "churn_probability": 0.94,                           │
+│         "risk_tier": "high",                                 │
+│         "clv": 287,                                          │
+│         "days_since_purchase": 78,                           │
+│         "top_risk_factors": [                                │
+│           {"factor": "long_absence", "impact": 0.42},        │
+│           {"factor": "declining_frequency", "impact": 0.18}  │
+│         ]                                                    │
+│       },                                                     │
+│       {...more customers...}                                 │
+│     ]                                                        │
+│   }                                                          │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 7: Simulate Scenario                                │
+├──────────────────────────────────────────────────────────────┤
+│ POST /simulate                                               │
+│                                                              │
+│ Request:                                                     │
+│   {                                                          │
+│     "session_id": "xyz789",                                  │
+│     "scenario": {                                            │
+│       "target_count": 100,                                   │
+│       "discount_percent": 20,                                │
+│       "success_rate": 0.35                                   │
+│     }                                                        │
+│   }                                                          │
+│                                                              │
+│ Response:                                                    │
+│   {                                                          │
+│     "scenario_id": "scen_001",                               │
+│     "inputs": {...},                                         │
+│     "outputs": {                                             │
+│       "total_cost": 800,                                     │
+│       "expected_saves": 35,                                  │
+│       "revenue_protected": 5775,                             │
+│       "net_roi": 4975,                                       │
+│       "roi_percent": 622                                     │
+│     }                                                        │
+│   }                                                          │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ENDPOINT 8: Export Report                                    │
+├──────────────────────────────────────────────────────────────┤
+│ GET /export/{session_id}                                     │
+│     ?format=pdf|csv                                          │
+│                                                              │
+│ Response:                                                    │
+│   File download (PDF report or CSV of predictions)           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## **Background Job Processing**
+
+Since model training takes 2-5 minutes, use asynchronous processing:
+
+### **Task Queue Architecture**
+
+```
+User clicks "Start Analysis"
+         ↓
+API creates background job
+         ↓
+Returns immediately with job_id
+         ↓
+User's browser polls /train/status every 3 seconds
+         ↓
+Background worker:
+  1. Loads data
+  2. Engineers features  
+  3. Trains models (parallel)
+  4. Evaluates
+  5. Generates insights
+  6. Saves results
+         ↓
+Status changes to "completed"
+         ↓
+Frontend redirects to results page
+```
+
+**Implementation Options:**
+- **Simple:** Python threading or multiprocessing
+- **Better:** Celery with Redis
+- **Best:** Cloud functions (AWS Lambda, Google Cloud Run)
+
+---
+
+# 8️⃣ **DATABASE DESIGN**
+
+## **Database Schema**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ TABLE: uploads                                                 │
+├────────────────────────────────────────────────────────────────┤
+│ upload_id        VARCHAR(50)   PRIMARY KEY                     │
+│ filename         VARCHAR(255)                                  │
+│ file_path        VARCHAR(500)                                  │
+│ file_size_bytes  BIGINT                                        │
+│ row_count        INTEGER                                       │
+│ uploaded_at      TIMESTAMP                                     │
+│ user_id          VARCHAR(50)    (for multi-user, optional)    │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ TABLE: sessions                                                │
+├────────────────────────────────────────────────────────────────┤
+│ session_id       VARCHAR(50)   PRIMARY KEY                     │
+│ upload_id        VARCHAR(50)   FOREIGN KEY → uploads           │
+│ column_mapping   JSON                                          │
+│ churn_threshold  INTEGER                                       │
+│ created_at       TIMESTAMP                                     │
+│ status           VARCHAR(20)   (configured/training/completed) │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ TABLE: training_jobs                                           │
+├────────────────────────────────────────────────────────────────┤
+│ job_id           VARCHAR(50)   PRIMARY KEY                     │
+│ session_id       VARCHAR(50)   FOREIGN KEY → sessions          │
+│ status           VARCHAR(20)   (pending/running/completed/failed)│
+│ progress         INTEGER       (0-100)                         │
+│ current_step     VARCHAR(100)                                  │
+│ started_at       TIMESTAMP                                     │
+│ completed_at     TIMESTAMP                                     │
+│ error_message    TEXT          (if failed)                     │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ TABLE: models                                                  │
+├────────────────────────────────────────────────────────────────┤
+│ model_id         VARCHAR(50)   PRIMARY KEY                     │
+│ session_id       VARCHAR(50)   FOREIGN KEY → sessions          │
+│ model_type       VARCHAR(50)   (logistic_reg, random_forest...)│
+│ file_path        VARCHAR(500)  (pickled model location)        │
+│ f1_score         FLOAT                                         │
+│ precision        FLOAT                                         │
+│ recall           FLOAT                                         │
+│ roc_auc          FLOAT                                         │
+│ is_champion      BOOLEAN                                       │
+│ trained_at       TIMESTAMP                                     │
+│ hyperparameters  JSON                                          │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ TABLE: predictions                                             │
+├────────────────────────────────────────────────────────────────┤
+│ prediction_id    VARCHAR(50)   PRIMARY KEY                     │
+│ session_id       VARCHAR(50)   FOREIGN KEY → sessions          │
+│ customer_id      VARCHAR(50)                                   │
+│ churn_prob       FLOAT         (0.0 to 1.0)                    │
+│ risk_tier        VARCHAR(10)   (high/medium/low)               │
+│ clv              FLOAT                                         │
+│ top_risk_factors JSON                                          │
+│ predicted_at     TIMESTAMP                                     │
+│                                                                │
+│ INDEX: (session_id, risk_tier)                                 │
+│ INDEX: (session_id, churn_prob DESC)                           │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ TABLE: insights                                                │
+├────────────────────────────────────────────────────────────────┤
+│ insight_id       VARCHAR(50)   PRIMARY KEY                     │
+│ session_id       VARCHAR(50)   FOREIGN KEY → sessions          │
+│ summary_stats    JSON          (churn_rate, revenue_at_risk)   │
+│ segments         JSON          (high/medium/low breakdowns)    │
+│ feature_import   JSON          (feature importance scores)     │
+│ recommendations  JSON          (action recommendations)        │
+│ generated_at     TIMESTAMP                                     │
+└────────────────────────────────────────────────────────────────┘
+```
+
+## **File Storage Structure**
+
+```
+project_root/
+│
+├── data/
+│   ├── uploads/
+│   │   ├── abc123_customer_data.csv         # Original uploads
+│   │   ├── xyz789_transactions.xlsx
+│   │   └── ...
+│   │
+│   ├── processed/
+│   │   ├── abc123_features.parquet          # Engineered features
+│   │   ├── abc123_train.parquet             # Training set
+│   │   ├── abc123_test.parquet              # Test set
+│   │   └── ...
+│   │
+│   └── samples/
+│       ├── coffee_shop_demo.csv             # Demo datasets
+│       ├── ecommerce_demo.csv
+│       └── subscription_demo.csv
+│
+├── models/
+│   ├── abc123_random_forest.pkl             # Trained models
+│   ├── abc123_xgboost.pkl
+│   ├── abc123_preprocessor.pkl              # Scalers, encoders
+│   └── ...
+│
+├── reports/
+│   ├── abc123_profile_report.html           # Data profiling
+│   ├── abc123_model_report.pdf              # Model performance
+│   ├── abc123_predictions.csv               # Prediction exports
+│   └── ...
+│
+└── cache/
+    ├── abc123_shap_values.pkl               # Expensive computations
+    └── ...
+```
+
+---
+
+# 9️⃣ **DEPLOYMENT ARCHITECTURE**
+
+## **Deployment Options**
+
+### **Option 1: Local Development (Start Here)**
+
+```
+┌─────────────────────────────────────┐
+│  User's Browser (localhost:8501)   │
+│  ┌───────────────────────────────┐ │
+│  │    Streamlit Frontend         │ │
+│  └───────────────────────────────┘ │
+└─────────────────────────────────────┘
+              ↕ HTTP
+┌─────────────────────────────────────┐
+│  FastAPI Backend (localhost:8000)  │
+│  ┌───────────────────────────────┐ │
+│  │  ML Pipeline                  │ │
+│  │  • scikit-learn               │ │
+│  │  • pandas                     │ │
+│  │  • SHAP                       │ │
+│  └───────────────────────────────┘ │
+└─────────────────────────────────────┘
+              ↕
+┌─────────────────────────────────────┐
+│  SQLite Database (local file)       │
+└─────────────────────────────────────┘
+
+How to run:
+Terminal 1: python backend/app.py
+Terminal 2: streamlit run frontend/app.py
+```
+
+---
+
+### **Option 2: Cloud Deployment (Streamlit Cloud - Easiest)**
+
+```
+┌──────────────────────────────────────────┐
+│  Streamlit Cloud (free tier)             │
+│  ┌────────────────────────────────────┐  │
+│  │  Your App running 24/7             │  │
+│  │  URL: yourapp.streamlit.app        │  │
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
+
+Steps:
+1. Push code to GitHub
+2. Connect Streamlit Cloud to repo
+3. Click "Deploy"
+4. Get public URL
+
+Limitations:
+- All logic in Streamlit app (no separate backend)
+- Limited compute resources
+- Good for: Demo, portfolio showcase
+```
+
+---
+
+### **Option 3: Docker Containerization (Production-Ready)**
+
+```
+┌─────────────────────────────────────────────────┐
+│  Docker Compose Environment                     │
+│                                                 │
+│  ┌──────────────────┐  ┌──────────────────┐   │
+│  │  Frontend        │  │  Backend         │   │
+│  │  (Streamlit)     │  │  (FastAPI)       │   │
+│  │  Port: 8501      │  │  Port: 8000      │   │
+│  └──────────────────┘  └──────────────────┘   │
+│           ↕                     ↕               │
+│  ┌──────────────────┐  ┌──────────────────┐   │
+│  │  PostgreSQL      │  │  Redis           │   │
+│  │  (Database)      │  │  (Cache/Queue)   │   │
+│  └──────────────────┘  └──────────────────┘   │
+└─────────────────────────────────────────────────┘
+
+Benefits:
+- Easy to deploy anywhere (AWS, GCP, Azure, local)
+- Consistent environment
+- Can scale components independently
+
+Run with: docker-compose up
+```
+
+---
+
+### **Option 4: AWS Deployment (Most Professional)**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                         AWS Cloud                          │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  CloudFront (CDN)                                    │ │
+│  │  Caches static assets, global distribution           │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                          ↕                                 │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Application Load Balancer                           │ │
+│  │  Distributes traffic, SSL termination                │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                          ↕                                 │
+│  ┌─────────────────────┐  ┌─────────────────────────────┐│
+│  │ ECS/Fargate         │  │ Lambda Functions            ││
+│  │ (Streamlit + API)   │  │ (Background ML tasks)       ││
+│  │ Auto-scales         │  │ Triggered by S3 uploads     ││
+│  └─────────────────────┘  └─────────────────────────────┘│
+│          ↕                            ↕                    │
+│  ┌─────────────────────┐  ┌─────────────────────────────┐│
+│  │ RDS PostgreSQL      │  │ S3 Buckets                  ││
+│  │ (Metadata)          │  │ • Uploads                   ││
+│  │                     │  │ • Models                    ││
+│  │                     │  │ • Reports                   ││
+│  └─────────────────────┘  └─────────────────────────────┘│
+└────────────────────────────────────────────────────────────┘
+
+Benefits:
+- Highly scalable
+- Professional infrastructure
+- Managed services
+- Good for resume
+
+Cost: ~$20-50/month (free tier available)
+```
+
+---
+
+## **Recommended Deployment Path**
+
+**Phase 1: Development (Week 1-3)**
+- Local development with SQLite
+- Run on localhost
+
+**Phase 2: Demo (Week 3-4)**
+- Deploy to Streamlit Cloud
+- Get shareable link for resume/portfolio
+- Free!
+
+**Phase 3: Production (Optional, if continuing project)**
+- Docker containerization
+- Deploy to AWS/GCP
+- Add authentication, monitoring
+
+---
+
+# 🔟 **SECURITY & PERFORMANCE**
+
+## **Security Considerations**
+
+### **Data Privacy**
+- User uploads may contain sensitive customer data
+- Store files securely, don't commit to Git
+- Add option to delete data after analysis
+- Encrypt data at rest (if deploying to cloud)
+
+### **Input Validation**
+- Validate file types (only CSV, Excel)
+- Check file size limits (prevent DoS)
+- Sanitize SQL queries (use parameterized queries)
+- Validate column mappings
+
+### **Authentication (if multi-user)**
+- Session tokens for tracking user data
+- API keys for programmatic access
+- Rate limiting to prevent abuse
+
+## **Performance Optimization**
+
+### **Data Processing**
+- Use Parquet format for processed features (10x faster than CSV)
+- Batch process large datasets
+- Cache feature engineering results
+- Use pandas query optimization
+
+### **Model Training**
+- Train models in parallel (use multiprocessing)
+- Cache cross-validation results
+- Use GPU if available (XGBoost supports GPU)
+- Early stopping for faster convergence
+
+### **API Performance**
+- Cache predictions for repeat queries
+- Use async endpoints for long-running tasks
+- Implement pagination for large result sets
+- Compress responses (gzip)
+
+### **Frontend Performance**
+- Lazy load large tables (virtual scrolling)
+- Debounce slider inputs
+- Cache chart renderings
+- Progressive loading (show results as they're ready)
+
+---
+
+# 1️⃣1️⃣ **PROJECT STRUCTURE**
+
+## **Complete Directory Layout**
+
+```
+automl-retail-advisor/
+│
+├── README.md                          # Project documentation
+├── requirements.txt                   # Python dependencies
+├── setup.py                          # Package installation
+├── .gitignore                        # Git ignore rules
+├── docker-compose.yml                # Docker orchestration (optional)
+├── Dockerfile                        # Container definition (optional)
+│
+├── config/
+│   ├── settings.py                   # Configuration management
+│   ├── logging.yaml                  # Logging configuration
+│   └── model_configs.yaml            # ML model hyperparameters
+│
+├── data/
+│   ├── uploads/                      # User-uploaded files (gitignored)
+│   ├── processed/                    # Processed features (gitignored)
+│   ├── samples/                      # Demo datasets (committed)
+│   │   ├── coffee_shop_demo.csv
+│   │   └── ecommerce_demo.csv
+│   └── README.md                     # Data documentation
+│
+├── models/
+│   ├── trained/                      # Saved models (gitignored)
+│   └── README.md                     # Model registry documentation
+│
+├── backend/
+│   ├── __init__.py
+│   ├── app.py                        # FastAPI application entry point
+│   │
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── routes.py                 # API endpoint definitions
+│   │   └── dependencies.py           # Dependency injection
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── data_profiler.py          # Data validation & profiling
+│   │   ├── feature_engineer.py       # Feature creation
+│   │   ├── automl_engine.py          # Model training orchestration
+│   │   ├── explainability.py         # SHAP, feature importance
+│   │   ├── insight_generator.py      # Business insights
+│   │   └── roi_calculator.py         # ROI calculations
+│   │
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── schemas.py                # Pydantic data models
+│   │   └── database.py               # Database models (SQLAlchemy)
+│   │
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── file_handlers.py          # CSV/Excel reading
+│   │   ├── validators.py             # Input validation
+│   │   └── helpers.py                # Utility functions
+│   │
+│   └── tests/
+│       ├── test_data_profiler.py
+│       ├── test_feature_engineer.py
+│       ├── test_automl_engine.py
+│       └── test_api.py
+│
+├── frontend/
+│   ├── __init__.py
+│   ├── app.py                        # Streamlit main app
+│   │
+│   ├── pages/
+│   │   ├── 1_Upload.py               # Upload & configure page
+│   │   ├── 2_Dashboard.py            # Main results dashboard
+│   │   ├── 3_Explorer.py             # Customer explorer
+│   │   ├── 4_WhatIf.py               # Scenario simulator
+│   │   └── 5_Reports.py              # Export & reports
+│   │
+│   ├── components/
+│   │   ├── __init__.py
+│   │   ├── charts.py                 # Reusable chart components
+│   │   ├── tables.py                 # Data table components
+│   │   └── widgets.py                # Custom UI widgets
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       ├── api_client.py             # Backend API client
+│       └── formatters.py             # Data formatting utils
+│
+├── notebooks/
+│   ├── 01_data_exploration.ipynb     # EDA experiments
+│   ├── 02_feature_engineering.ipynb  # Feature development
+│   ├── 03_model_experiments.ipynb    # Model selection tests
+│   └── 04_insight_generation.ipynb   # Business logic prototyping
+│
+├── scripts/
+│   ├── setup_database.py             # Initialize database
+│   ├── generate_sample_data.py       # Create demo datasets
+│   └── run_tests.sh                  # Test runner script
+│
+├── docs/
+│   ├── API.md                        # API documentation
+│   ├── ARCHITECTURE.md               # This document!
+│   ├── DEPLOYMENT.md                 # Deployment guide
+│   └── USER_GUIDE.md                 # End-user documentation
+│
+└── reports/                          # Generated reports (gitignored)
+```
+
+---
+
+# 1️⃣2️⃣ **IMPLEMENTATION ROADMAP**
+
+## **4-Week Development Plan**
+
+### **Week 1: Foundation & Data Pipeline**
+
+**Day 1-2: Project Setup**
+- Initialize Git repository
+- Set up virtual environment
+- Install dependencies
+- Create directory structure
+- Set up
+SQLite database
+
+**Day 3-4: Data Profiler**
+- File upload functionality
+- CSV/Excel parsing
+- Data validation
+- Quality assessment
+- Churn threshold detection
+
+**Day 5-7: Feature Engineering**
+- Customer aggregation logic
+- RFM feature creation
+- Temporal features
+- Behavioral features
+- Feature normalization
+
+**Deliverable:** Can upload CSV and get feature matrix
+
+---
+
+### **Week 2: ML Pipeline**
+
+**Day 8-9: Training Infrastructure**
+- Train-test split
+- Cross-validation framework
+- Model training loops
+- Hyperparameter tuning setup
+
+**Day 10-11: Model Implementation**
+- Logistic Regression
+- Random Forest
+- XGBoost
+- LightGBM
+- SVM
+
+**Day 12-14: Evaluation & Selection**
+- Metrics calculation
+- Model comparison
+- Champion selection
+- Model persistence
+
+**Deliverable:** Working AutoML engine that trains and selects best model
+
+---
+
+### **Week 3: Insights & Frontend**
+
+**Day 15-16: Explainability**
+- Feature importance extraction
+- SHAP integration (basic)
+- Decision rule extraction
+
+**Day 17-18: Insight Generation**
+- Customer segmentation
+- Revenue calculations
+- Recommendations engine
+- ROI calculator
+
+**Day 19-21: Frontend Development**
+- Streamlit app structure
+- Upload page
+- Dashboard page
+- Customer explorer
+- Basic what-if simulator
+
+**Deliverable:** End-to-end working application
+
+---
+
+### **Week 4: Polish & Deploy**
+
+**Day 22-23: Refinement**
+- Error handling
+- Loading indicators
+- Input validation
+- Edge case handling
+
+**Day 24-25: Testing**
+- Unit tests
+- Integration tests
+- User acceptance testing
+- Bug fixes
+
+**Day 26-27: Documentation**
+- README with examples
+- API documentation
+- Code comments
+- User guide
+
+**Day 28: Deployment**
+- Deploy to Streamlit Cloud
+- Test public URL
+- Create demo video
+- Update resume/portfolio
+
+**Deliverable:** Production-ready app with documentation
+
+---
+
+## **Minimum Viable Product (MVP) Scope**
+
+If you only have 2 weeks, focus on:
+
+**Must Have:**
+- Data upload & validation
+- Basic feature engineering (RFM only)
+- 3 models (Logistic, Random Forest, XGBoost)
+- Simple evaluation
+- Basic dashboard with predictions
+
+**Nice to Have (add later):**
+- SHAP explanations
+- What-if simulator
+- Advanced features
+- Multiple deployment options
+
+---
+
+## **Success Metrics**
+
+Your project is successful when:
+
+✅ Can handle real retail CSV files  
+✅ Trains models in <5 minutes  
+✅ Achieves F1 > 0.75 on test set  
+✅ Generates actionable insights with ROI  
+✅ Has polished, demo-ready interface  
+✅ Documented well enough for others to use  
+✅ Deployed and accessible via URL  
+
+---
+
+## **Common Pitfalls to Avoid**
+
+❌ **Over-engineering:** Don't build complex microservices for MVP  
+❌ **Scope creep:** Stick to retail churn, don't try to solve everything  
+❌ **Premature optimization:** Get it working first, optimize later  
+❌ **Neglecting documentation:** Document as you go, not at the end  
+❌ **Ignoring edge cases:** Handle missing data, small datasets, etc.  
+❌ **Over-complex ML:** Start simple, add complexity only if needed  
+
+---
+
+# 🎯 **FINAL SUMMARY**
+
+This architecture gives you:
+
+1. **Clear structure:** Every component has a defined role
+2. **Scalability:** Can handle more data/users as needed
+3. **Maintainability:** Well-organized, testable code
+4. **Demonstrability:** Easy to showcase in interviews
+5. **Extensibility:** Can add features incrementally
+
+**Start simple, iterate, and focus on getting the core ML pipeline working first.**
+
+**This is a strong foundation for an 8.5-9/10 portfolio project!** 🚀

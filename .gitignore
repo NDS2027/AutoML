@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+.conda/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment variables
+.env
+.env.local
+*.env
+
+# MongoDB
+*.bson
+
+# ML Models (large files)
+*.pkl
+*.joblib
+*.h5
+*.model
+saved_models/
+
+# Data (keep samples)
+data/uploads/
+data/processed/
+!data/samples/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temp
+tmp/
+temp/
+*.tmp
